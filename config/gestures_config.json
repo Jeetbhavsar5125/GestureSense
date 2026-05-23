@@ -1,0 +1,83 @@
+{
+    "mappings": {
+        "fist": {
+            "label": "Play / Pause",
+            "icon": "✊",
+            "key": "space",
+            "key_type": "special",
+            "cooldown": 1.0
+        },
+        "peace": {
+            "label": "Skip +10s",
+            "icon": "✌️",
+            "key": "l",
+            "key_type": "char",
+            "cooldown": 1.0
+        },
+        "three_fingers": {
+            "label": "Skip -10s",
+            "icon": "🤟",
+            "key": "j",
+            "key_type": "char",
+            "cooldown": 1.0
+        },
+        "open_palm": {
+            "label": "Skip +5s",
+            "icon": "🖐️",
+            "key": "right",
+            "key_type": "special",
+            "cooldown": 0.8
+        },
+        "thumb_up": {
+            "label": "Volume Up",
+            "icon": "👍",
+            "key": "up",
+            "key_type": "special",
+            "cooldown": 0.5
+        },
+        "thumb_down": {
+            "label": "Volume Down",
+            "icon": "👎",
+            "key": "down",
+            "key_type": "special",
+            "cooldown": 0.5
+        },
+        "pinch": {
+            "label": "Mute Toggle",
+            "icon": "🤏",
+            "key": "m",
+            "key_type": "char",
+            "cooldown": 1.2
+        },
+        "ok_sign": {
+            "label": "Fullscreen",
+            "icon": "👌",
+            "key": "f",
+            "key_type": "char",
+            "cooldown": 1.5
+        },
+        "shaka": {
+            "label": "Theater Mode",
+            "icon": "🤙",
+            "key": "t",
+            "key_type": "char",
+            "cooldown": 1.5
+        },
+        "index": {
+            "label": "Move Cursor",
+            "icon": "☝️",
+            "key": "",
+            "key_type": "none",
+            "cooldown": 0.0
+        }
+    },
+    "custom": {
+        "01001": {
+            "label": "Open YouTube",
+            "icon": "📺",
+            "key": "https://youtube.com",
+            "key_type": "url",
+            "cooldown": 2.0
+        }
+    }
+}

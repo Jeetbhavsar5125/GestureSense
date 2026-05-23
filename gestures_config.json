@@ -1,0 +1,109 @@
+{
+  "first_run": false,
+  "settings": {
+    "camera_index": 0,
+    "ema_alpha": 0.7,
+    "width": 640,
+    "height": 480,
+    "gemini_api_key": "",
+    "use_ml_model": false,
+    "voice_enabled": false,
+    "high_contrast": false
+  },
+  "calibration": {
+    "calibrated": false,
+    "pinch_threshold": 0.07,
+    "thumb_deadband": 0.01,
+    "finger_deadband": 0.01,
+    "scale_min": 1.0,
+    "scale_max": 1.0
+  },
+  "mappings": {
+    "fist": {
+      "label": "Play / Pause",
+      "icon": "✊",
+      "key": "space",
+      "key_type": "special",
+      "cooldown": 10.0
+    },
+    "peace": {
+      "label": "Skip +10s",
+      "icon": "✌️",
+      "key": "l",
+      "key_type": "char",
+      "cooldown": 10.0
+    },
+    "three_fingers": {
+      "label": "Skip -10s",
+      "icon": "🤟",
+      "key": "j",
+      "key_type": "char",
+      "cooldown": 10.0
+    },
+    "open_palm": {
+      "label": "Skip +5s",
+      "icon": "🖐️",
+      "key": "right",
+      "key_type": "special",
+      "cooldown": 10.0
+    },
+    "thumb_up": {
+      "label": "Volume Up",
+      "icon": "👍",
+      "key": "left",
+      "key_type": "special",
+      "cooldown": 10.0
+    },
+    "thumb_down": {
+      "label": "Volume Down",
+      "icon": "👎",
+      "key": "down",
+      "key_type": "special",
+      "cooldown": 10.0
+    },
+    "pinch": {
+      "label": "Mute Toggle",
+      "icon": "🤏",
+      "key": "m",
+      "key_type": "char",
+      "cooldown": 10.0
+    },
+    "ok_sign": {
+      "label": "Fullscreen",
+      "icon": "👌",
+      "key": "f",
+      "key_type": "char",
+      "cooldown": 10.0
+    },
+    "shaka": {
+      "label": "Theater Mode",
+      "icon": "🤙",
+      "key": "t",
+      "key_type": "char",
+      "cooldown": 10.0
+    },
+    "index": {
+      "label": "Move Cursor",
+      "icon": "☝️",
+      "key": "",
+      "key_type": "none",
+      "cooldown": 10.0
+    },
+    "index_pinky": {
+      "label": "Rock On (Next)",
+      "icon": "🤘",
+      "key": "right",
+      "key_type": "special",
+      "cooldown": 10.0
+    }
+  },
+  "custom": {
+    "01001": {
+      "label": "Open YouTube",
+      "icon": "📺",
+      "key": "https://youtube.com",
+      "key_type": "url",
+      "cooldown": 2.0
+    }
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "mappings": {
+    "fist":          { "label": "Fist",           "icon": "✊",  "key": "",       "key_type": "none",    "cooldown": 1.0 },
+    "open_palm":     { "label": "Open Palm",       "icon": "🖐", "key": "space",  "key_type": "special", "cooldown": 1.0 },
+    "index":         { "label": "Index Finger",    "icon": "☝",  "key": "",       "key_type": "none",    "cooldown": 0.5 },
+    "peace":         { "label": "Peace Sign",      "icon": "✌",  "key": "",       "key_type": "none",    "cooldown": 0.5 },
+    "three_fingers": { "label": "Three Fingers",   "icon": "🤟", "key": "",       "key_type": "none",    "cooldown": 0.5 },
+    "thumb_up":      { "label": "Thumb Up",        "icon": "👍", "key": "right",  "key_type": "special", "cooldown": 1.0 },
+    "thumb_down":    { "label": "Thumb Down",      "icon": "👎", "key": "left",   "key_type": "special", "cooldown": 1.0 },
+    "pinch":         { "label": "Pinch",           "icon": "🤏", "key": "",       "key_type": "none",    "cooldown": 0.5 },
+    "ok_sign":       { "label": "OK Sign",         "icon": "👌", "key": "",       "key_type": "none",    "cooldown": 0.5 },
+    "shaka":         { "label": "Shaka / Hang Loose", "icon": "🤙", "key": "m",      "key_type": "char",    "cooldown": 1.5 },
+    "index_pinky":   { "label": "Rock On (Next)",     "icon": "🤘", "key": "right",  "key_type": "special", "cooldown": 1.0 }
+  },
+  "custom": {},
+  "settings": {
+    "camera_index": 0,
+    "ema_alpha": 0.7,
+    "width": 640,
+    "height": 480
+  }
+}

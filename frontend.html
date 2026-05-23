@@ -1,0 +1,847 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>GestureSense — Hand Gesture Controller</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg:       #050d1a;
+    --bg2:      #0a1628;
+    --bg3:      #0f1f38;
+    --card:     #0d1f3c;
+    --accent:   #00e5ff;
+    --accent2:  #7c3aed;
+    --green:    #00ff88;
+    --orange:   #ff9500;
+    --red:      #ff3b5c;
+    --white:    #f0f8ff;
+    --muted:    #4a6080;
+    --text:     #a8c4e0;
+    --border:   #1a3050;
+    --glow:     0 0 20px rgba(0,229,255,0.3);
+    --glow2:    0 0 30px rgba(124,58,237,0.25);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--white);
+    font-family: 'Syne', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── Grid bg ── */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image:
+      linear-gradient(rgba(0,229,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,229,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none; z-index: 0;
+  }
+
+  /* ── Orbs ── */
+  .orb {
+    position: fixed; border-radius: 50%;
+    filter: blur(80px); pointer-events: none; z-index: 0;
+  }
+  .orb-1 { width:500px;height:500px;top:-150px;left:-150px;background:rgba(0,229,255,0.06);}
+  .orb-2 { width:400px;height:400px;bottom:-100px;right:-100px;background:rgba(124,58,237,0.07);}
+
+  /* ── Layout ── */
+  .app { position: relative; z-index: 1; display: grid; grid-template-rows: auto 1fr; min-height: 100vh; }
+
+  /* ── Header ── */
+  header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 1rem 2rem;
+    background: rgba(5,13,26,0.85);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border);
+    position: sticky; top: 0; z-index: 100;
+  }
+
+  .logo { display: flex; align-items: center; gap: 0.75rem; }
+  .logo-icon {
+    width: 40px; height: 40px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.2rem;
+    box-shadow: var(--glow);
+  }
+  .logo-text { font-size: 1.4rem; font-weight: 800; letter-spacing: -0.02em; }
+  .logo-text span { color: var(--accent); }
+
+  .header-status { display: flex; align-items: center; gap: 1.5rem; }
+  .status-pill {
+    display: flex; align-items: center; gap: 0.5rem;
+    padding: 0.35rem 0.9rem;
+    border-radius: 100px;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.72rem;
+    border: 1px solid var(--border);
+    background: var(--bg2);
+    transition: all 0.3s;
+  }
+  .status-pill.connected { border-color: var(--green); color: var(--green); background: rgba(0,255,136,0.06); }
+  .status-pill.disconnected { border-color: var(--red); color: var(--red); }
+  .status-dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+  .status-dot.pulse { animation: pulse-dot 1.2s infinite; }
+
+  @keyframes pulse-dot {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.7); }
+  }
+
+  .fps-badge {
+    font-family: 'Space Mono', monospace; font-size: 0.72rem;
+    color: var(--accent); background: rgba(0,229,255,0.08);
+    border: 1px solid rgba(0,229,255,0.2);
+    padding: 0.3rem 0.7rem; border-radius: 6px;
+  }
+
+  /* ── Main grid ── */
+  main {
+    display: grid;
+    grid-template-columns: 1fr 360px;
+    grid-template-rows: auto 1fr;
+    gap: 1.25rem;
+    padding: 1.25rem 2rem 2rem;
+    max-width: 1400px;
+    margin: 0 auto;
+    width: 100%;
+  }
+
+  /* ── Camera panel ── */
+  .camera-panel {
+    grid-row: 1 / 3;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+    display: flex; flex-direction: column;
+    position: relative;
+  }
+
+  .panel-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--border);
+    background: rgba(13,31,60,0.6);
+  }
+  .panel-title {
+    font-size: 0.78rem; font-weight: 700; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--muted);
+  }
+
+  .camera-feed {
+    flex: 1; position: relative;
+    background: #020810;
+    min-height: 380px;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  #camera-img {
+    width: 100%; height: 100%; object-fit: cover;
+    display: none;
+  }
+
+  .camera-placeholder {
+    display: flex; flex-direction: column; align-items: center; gap: 1rem;
+    color: var(--muted);
+  }
+  .camera-placeholder .icon { font-size: 3rem; }
+  .camera-placeholder p { font-size: 0.85rem; font-family: 'Space Mono', monospace; }
+
+  /* Gesture overlay badge */
+  .gesture-overlay {
+    position: absolute; bottom: 1rem; left: 50%; transform: translateX(-50%);
+    display: flex; align-items: center; gap: 0.6rem;
+    background: rgba(5,13,26,0.9);
+    border: 1px solid var(--accent);
+    border-radius: 100px;
+    padding: 0.5rem 1.2rem;
+    backdrop-filter: blur(10px);
+    opacity: 0;
+    transition: opacity 0.3s;
+    white-space: nowrap;
+  }
+  .gesture-overlay.visible { opacity: 1; }
+  .gesture-overlay .gest-icon { font-size: 1.3rem; }
+  .gesture-overlay .gest-name { font-size: 0.85rem; font-weight: 700; color: var(--accent); }
+  .gesture-overlay .gest-conf { font-family: 'Space Mono', monospace; font-size: 0.7rem; color: var(--muted); }
+
+  /* Corner decorators */
+  .corner { position: absolute; width: 16px; height: 16px; }
+  .corner-tl { top: 8px; left: 8px; border-top: 2px solid var(--accent); border-left: 2px solid var(--accent); }
+  .corner-tr { top: 8px; right: 8px; border-top: 2px solid var(--accent); border-right: 2px solid var(--accent); }
+  .corner-bl { bottom: 8px; left: 8px; border-bottom: 2px solid var(--accent); border-left: 2px solid var(--accent); }
+  .corner-br { bottom: 8px; right: 8px; border-bottom: 2px solid var(--accent); border-right: 2px solid var(--accent); }
+
+  /* ── Gesture card ── */
+  .gesture-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 1.25rem;
+    display: flex; flex-direction: column; gap: 0.75rem;
+  }
+
+  .active-gesture-display {
+    display: flex; align-items: center; gap: 1rem;
+    padding: 1rem;
+    background: var(--bg2);
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    min-height: 80px;
+    transition: border-color 0.3s, box-shadow 0.3s;
+  }
+  .active-gesture-display.active {
+    border-color: var(--accent);
+    box-shadow: 0 0 20px rgba(0,229,255,0.15);
+  }
+  .active-icon { font-size: 2.5rem; min-width: 50px; text-align: center; }
+  .active-info { flex: 1; }
+  .active-label { font-size: 1.1rem; font-weight: 700; color: var(--white); }
+  .active-action { font-size: 0.75rem; color: var(--accent); font-family: 'Space Mono', monospace; margin-top: 0.2rem; }
+
+  /* Confidence bar */
+  .conf-wrap { display: flex; flex-direction: column; gap: 0.35rem; }
+  .conf-label { display: flex; justify-content: space-between; font-size: 0.7rem; color: var(--muted); font-family: 'Space Mono', monospace; }
+  .conf-bar { height: 4px; background: var(--bg2); border-radius: 2px; overflow: hidden; }
+  .conf-fill {
+    height: 100%; width: 0%;
+    background: linear-gradient(90deg, var(--accent2), var(--accent));
+    border-radius: 2px;
+    transition: width 0.2s ease;
+  }
+
+  /* Finger visualizer */
+  .finger-viz {
+    display: flex; gap: 0.4rem; justify-content: center; align-items: flex-end;
+    padding: 0.75rem;
+    background: var(--bg2);
+    border-radius: 10px;
+  }
+  .finger {
+    display: flex; flex-direction: column; align-items: center; gap: 0.3rem;
+  }
+  .finger-bar {
+    width: 18px; border-radius: 4px 4px 0 0;
+    background: var(--border);
+    transition: background 0.2s, height 0.2s;
+  }
+  .finger-bar.up { background: var(--accent); box-shadow: 0 0 8px rgba(0,229,255,0.5); }
+  .finger-name { font-size: 0.55rem; color: var(--muted); font-family: 'Space Mono', monospace; text-transform: uppercase; }
+
+  /* ── Stats panel ── */
+  .stats-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 1.25rem;
+  }
+
+  .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-top: 0.75rem; }
+  .stat-box {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0.75rem;
+  }
+  .stat-val { font-size: 1.6rem; font-weight: 800; color: var(--accent); font-family: 'Space Mono', monospace; }
+  .stat-lbl { font-size: 0.65rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-top: 0.15rem; }
+
+  /* ── Gesture map ── */
+  .gesture-map-card {
+    grid-column: 2;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+  }
+
+  .gesture-list { overflow-y: auto; max-height: 360px; }
+  .gesture-list::-webkit-scrollbar { width: 4px; }
+  .gesture-list::-webkit-scrollbar-track { background: transparent; }
+  .gesture-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .gesture-row {
+    display: flex; align-items: center; gap: 0.75rem;
+    padding: 0.7rem 1.25rem;
+    border-bottom: 1px solid var(--border);
+    transition: background 0.2s;
+    cursor: pointer;
+  }
+  .gesture-row:last-child { border-bottom: none; }
+  .gesture-row:hover { background: rgba(0,229,255,0.04); }
+  .gesture-row.active-row { background: rgba(0,229,255,0.08); border-left: 3px solid var(--accent); }
+
+  .gr-icon { font-size: 1.4rem; min-width: 32px; text-align: center; }
+  .gr-info { flex: 1; }
+  .gr-name { font-size: 0.82rem; font-weight: 700; }
+  .gr-action { font-size: 0.68rem; color: var(--muted); font-family: 'Space Mono', monospace; margin-top: 0.1rem; }
+  .gr-count {
+    font-family: 'Space Mono', monospace; font-size: 0.7rem;
+    color: var(--accent); background: rgba(0,229,255,0.1);
+    padding: 0.2rem 0.5rem; border-radius: 4px;
+    min-width: 36px; text-align: center;
+  }
+
+  /* ── Controls ── */
+  .controls { display: flex; gap: 0.75rem; padding: 1rem 1.25rem; border-top: 1px solid var(--border); }
+  .btn {
+    flex: 1; padding: 0.7rem; border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--bg2);
+    color: var(--white);
+    font-family: 'Syne', sans-serif;
+    font-size: 0.8rem; font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.04em;
+  }
+  .btn:hover { border-color: var(--accent); color: var(--accent); background: rgba(0,229,255,0.05); }
+  .btn.primary {
+    background: linear-gradient(135deg, var(--accent2), var(--accent));
+    border: none; color: var(--bg);
+    box-shadow: 0 4px 15px rgba(0,229,255,0.2);
+  }
+  .btn.primary:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(0,229,255,0.3); }
+  .btn.danger { border-color: var(--red); color: var(--red); }
+  .btn.danger:hover { background: rgba(255,59,92,0.08); }
+
+  select.btn {
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml;utf8,<svg fill='white' height='24' viewBox='0 0 24 24' width='24' xmlns='http://www.w3.org/2000/svg'><path d='M7 10l5 5 5-5z'/><path d='M0 0h24v24H0z' fill='none'/></svg>");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    padding-right: 30px;
+  }
+  select.btn option {
+    background: var(--bg3);
+    color: var(--white);
+  }
+
+  /* ── Log ── */
+  .log-panel {
+    grid-column: 1 / 3;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+  }
+  .log-body {
+    padding: 0.75rem 1.25rem;
+    height: 120px;
+    overflow-y: auto;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.72rem;
+    line-height: 1.7;
+  }
+  .log-body::-webkit-scrollbar { width: 4px; }
+  .log-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+  .log-entry { color: var(--text); }
+  .log-entry .time { color: var(--muted); margin-right: 0.6rem; }
+  .log-entry .gesture-tag { color: var(--accent); }
+  .log-entry .action-tag { color: var(--green); }
+
+  /* ── Notification toast ── */
+  .toast {
+    position: fixed; bottom: 2rem; right: 2rem;
+    background: var(--card);
+    border: 1px solid var(--accent);
+    border-radius: 10px;
+    padding: 0.8rem 1.2rem;
+    font-size: 0.85rem;
+    box-shadow: var(--glow);
+    transform: translateY(100px);
+    opacity: 0;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    z-index: 999;
+    display: flex; align-items: center; gap: 0.6rem;
+  }
+  .toast.show { transform: translateY(0); opacity: 1; }
+
+  /* ── Scanline animation on camera ── */
+  @keyframes scanline {
+    0% { transform: translateY(-100%); }
+    100% { transform: translateY(100vh); }
+  }
+  .scanline {
+    position: absolute; left: 0; right: 0; height: 2px;
+    background: linear-gradient(transparent, rgba(0,229,255,0.15), transparent);
+    animation: scanline 4s linear infinite;
+    pointer-events: none;
+  }
+</style>
+</head>
+<body>
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
+
+<div class="app">
+  <!-- HEADER -->
+  <header>
+    <div class="logo">
+      <div class="logo-icon">🖐️</div>
+      <div class="logo-text">Gesture<span>Sense</span></div>
+    </div>
+    <div class="header-status">
+      <div class="fps-badge" id="fps-badge">-- FPS</div>
+      <div class="status-pill disconnected" id="status-pill">
+        <div class="status-dot" id="status-dot"></div>
+        <span id="status-text">Disconnected</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN -->
+  <main>
+
+    <!-- CAMERA PANEL -->
+    <div class="camera-panel">
+      <div class="panel-header">
+        <span class="panel-title">📷 Live Camera Feed</span>
+        <span id="hand-detected-badge" style="font-size:0.72rem;color:var(--muted);font-family:'Space Mono',monospace;">No hand detected</span>
+      </div>
+      <div class="camera-feed" id="camera-feed">
+        <img id="camera-img" alt="Camera Feed"/>
+        <div class="camera-placeholder" id="camera-placeholder">
+          <div class="icon">📷</div>
+          <p>Waiting for connection...</p>
+          <p style="font-size:0.65rem;margin-top:0.25rem;color:var(--muted)">Click CONNECT below to start</p>
+        </div>
+        <div class="scanline"></div>
+        <div class="corner corner-tl"></div>
+        <div class="corner corner-tr"></div>
+        <div class="corner corner-bl"></div>
+        <div class="corner corner-br"></div>
+        <div class="gesture-overlay" id="gesture-overlay">
+          <span class="gest-icon" id="overlay-icon">✊</span>
+          <span class="gest-name" id="overlay-name">FIST</span>
+          <span class="gest-conf" id="overlay-conf">98%</span>
+        </div>
+      </div>
+
+      <!-- Controls -->
+      <div class="controls" style="flex-wrap: wrap; gap: 0.5rem;">
+        <select id="webcam-select" class="btn" style="flex: 1 1 100%; text-align: left; background: var(--bg2); border-color: var(--border);">
+          <option value="0">Camera 0 (Default)</option>
+          <option value="1">Camera 1</option>
+          <option value="2">Camera 2</option>
+          <option value="3">Camera 3</option>
+        </select>
+        <button class="btn primary" id="btn-connect" onclick="toggleConnection()">⚡ CONNECT</button>
+        <button class="btn" id="btn-mouse" onclick="toggleWebMouseControl()">🖱️ Mouse Control: OFF</button>
+        <button class="btn" onclick="clearLog()">🗑 Clear Log</button>
+        <button class="btn danger" id="btn-stop" onclick="disconnect()" disabled>■ STOP</button>
+      </div>
+    </div>
+
+    <!-- RIGHT COLUMN TOP — Active Gesture -->
+    <div class="gesture-card">
+      <div class="panel-title" style="font-size:0.72rem;letter-spacing:0.1em;">🎯 ACTIVE GESTURE</div>
+
+      <div class="active-gesture-display" id="active-display">
+        <div class="active-icon" id="active-icon">—</div>
+        <div class="active-info">
+          <div class="active-label" id="active-label">Waiting...</div>
+          <div class="active-action" id="active-action">No gesture detected</div>
+        </div>
+      </div>
+
+      <div class="conf-wrap">
+        <div class="conf-label">
+          <span>Confidence</span>
+          <span id="conf-val">0%</span>
+        </div>
+        <div class="conf-bar"><div class="conf-fill" id="conf-fill"></div></div>
+      </div>
+
+      <!-- Finger visualizer -->
+      <div class="finger-viz" id="finger-viz">
+        <div class="finger">
+          <div class="finger-bar" id="f-thumb" style="height:30px"></div>
+          <div class="finger-name">Thumb</div>
+        </div>
+        <div class="finger">
+          <div class="finger-bar" id="f-index" style="height:45px"></div>
+          <div class="finger-name">Index</div>
+        </div>
+        <div class="finger">
+          <div class="finger-bar" id="f-middle" style="height:48px"></div>
+          <div class="finger-name">Middle</div>
+        </div>
+        <div class="finger">
+          <div class="finger-bar" id="f-ring" style="height:44px"></div>
+          <div class="finger-name">Ring</div>
+        </div>
+        <div class="finger">
+          <div class="finger-bar" id="f-pinky" style="height:36px"></div>
+          <div class="finger-name">Pinky</div>
+        </div>
+      </div>
+
+      <!-- Stats mini -->
+      <div class="stats-grid">
+        <div class="stat-box">
+          <div class="stat-val" id="stat-total">0</div>
+          <div class="stat-lbl">Total Gestures</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-val" id="stat-uptime">00:00</div>
+          <div class="stat-lbl">Session Time</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT COLUMN BOTTOM — Gesture Map -->
+    <div class="gesture-map-card">
+      <div class="panel-header">
+        <span class="panel-title">🗂 Gesture Map</span>
+        <span style="font-size:0.68rem;color:var(--muted);">10 gestures</span>
+      </div>
+      <div class="gesture-list" id="gesture-list">
+        <!-- Populated by JS -->
+      </div>
+    </div>
+
+    <!-- LOG PANEL -->
+    <div class="log-panel">
+      <div class="panel-header">
+        <span class="panel-title">📋 Activity Log</span>
+        <span style="font-size:0.68rem;color:var(--muted);font-family:'Space Mono',monospace;" id="log-count">0 events</span>
+      </div>
+      <div class="log-body" id="log-body">
+        <div class="log-entry"><span class="time">00:00:00</span>GestureSense frontend loaded. Click CONNECT to start.</div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast">
+  <span id="toast-icon">✅</span>
+  <span id="toast-msg">Connected!</span>
+</div>
+
+<script>
+// ── State ────────────────────────────────────────────────────────────────────
+let ws = null;
+let connected = false;
+let mouseControlEnabled = false;
+let sessionStart = null;
+let logCount = 0;
+let gestureCount = 0;
+let uptimeInterval = null;
+
+const GESTURE_MAP = {
+  fist:          { icon:"✊", label:"Fist",          action:"play_pause",      color:"#00e5ff" },
+  index:         { icon:"☝️", label:"Index Finger",  action:"cursor_move",     color:"#00e5ff" },
+  peace:         { icon:"✌️", label:"Peace Sign",    action:"skip_forward_10", color:"#7c3aed" },
+  three_fingers: { icon:"🤟", label:"3 Fingers",     action:"skip_back_10",    color:"#ff9500" },
+  open_palm:     { icon:"🖐️", label:"Open Palm",    action:"skip_forward_5",  color:"#00e5ff" },
+  thumb_up:      { icon:"👍", label:"Thumb Up",      action:"volume_up",       color:"#00ff88" },
+  thumb_down:    { icon:"👎", label:"Thumb Down",    action:"volume_down",     color:"#ff3b5c" },
+  pinch:         { icon:"🤏", label:"Pinch",         action:"mute",            color:"#ff9500" },
+  ok_sign:       { icon:"👌", label:"OK Sign",       action:"fullscreen",      color:"#00ff88" },
+  shaka:         { icon:"🤙", label:"Shaka",         action:"theater_mode",    color:"#7c3aed" },
+};
+
+const gestureCounts = {};
+Object.keys(GESTURE_MAP).forEach(k => gestureCounts[k] = 0);
+
+// ── Init gesture list ─────────────────────────────────────────────────────────
+function buildGestureList() {
+  const list = document.getElementById("gesture-list");
+  list.innerHTML = "";
+  Object.entries(GESTURE_MAP).forEach(([key, g]) => {
+    const row = document.createElement("div");
+    row.className = "gesture-row";
+    row.id = `gr-${key}`;
+    row.innerHTML = `
+      <div class="gr-icon">${g.icon}</div>
+      <div class="gr-info">
+        <div class="gr-name">${g.label}</div>
+        <div class="gr-action">${g.action.replace(/_/g," ").toUpperCase()}</div>
+      </div>
+      <div class="gr-count" id="gc-${key}">0</div>
+    `;
+    list.appendChild(row);
+  });
+}
+
+// ── WebSocket ─────────────────────────────────────────────────────────────────
+function toggleWebMouseControl() {
+  mouseControlEnabled = !mouseControlEnabled;
+  const btn = document.getElementById("btn-mouse");
+  if (mouseControlEnabled) {
+    btn.textContent = "🖱️ Mouse Control: ON";
+    btn.style.borderColor = "var(--accent)";
+    btn.style.color = "var(--accent)";
+    btn.style.background = "rgba(0, 229, 255, 0.1)";
+  } else {
+    btn.textContent = "🖱️ Mouse Control: OFF";
+    btn.style.borderColor = "var(--border)";
+    btn.style.color = "var(--white)";
+    btn.style.background = "var(--bg2)";
+  }
+  if (connected) {
+    disconnect();
+    connect();
+  }
+}
+
+function toggleConnection() {
+  if (connected) disconnect();
+  else connect();
+}
+
+function connect() {
+  const camSelect = document.getElementById("webcam-select");
+  const camIdx = camSelect ? camSelect.value : 0;
+  
+  if (camSelect) camSelect.disabled = true;
+
+  ws = new WebSocket(`ws://localhost:8000/ws/gesture?cam_index=${camIdx}&mouse_control=${mouseControlEnabled}`);
+
+  ws.onopen = () => {
+    connected = true;
+    sessionStart = Date.now();
+    setStatus(true);
+    document.getElementById("btn-connect").textContent = "⚡ CONNECTED";
+    document.getElementById("btn-connect").disabled = true;
+    document.getElementById("btn-stop").disabled = false;
+    document.getElementById("camera-placeholder").style.display = "none";
+    document.getElementById("camera-img").style.display = "block";
+    startUptimeClock();
+    log("system", "WebSocket connected to GestureSense backend.");
+    showToast("✅", "Connected to backend!");
+  };
+
+  ws.onmessage = (event) => {
+    const data = JSON.parse(event.data);
+    if (data.type === "gesture_frame") {
+      handleFrame(data);
+    } else if (data.type === "error") {
+      log("error", data.message);
+      showToast("❌", data.message);
+      disconnect();
+    }
+  };
+
+  ws.onerror = () => {
+    log("error", "Cannot connect. Is backend running? Run: uvicorn backend:app --reload");
+    showToast("❌", "Backend not running!");
+    disconnect();
+  };
+
+  ws.onclose = () => {
+    if (connected) disconnect();
+  };
+}
+
+function disconnect() {
+  if (ws) { ws.close(); ws = null; }
+  connected = false;
+  setStatus(false);
+  
+  const camSelect = document.getElementById("webcam-select");
+  if (camSelect) camSelect.disabled = false;
+
+  document.getElementById("btn-connect").textContent = "⚡ CONNECT";
+  document.getElementById("btn-connect").disabled = false;
+  document.getElementById("btn-stop").disabled = true;
+  document.getElementById("camera-placeholder").style.display = "flex";
+  document.getElementById("camera-img").style.display = "none";
+  document.getElementById("gesture-overlay").classList.remove("visible");
+  clearInterval(uptimeInterval);
+  log("system", "Disconnected from backend.");
+}
+
+// ── Frame handler ─────────────────────────────────────────────────────────────
+let lastGesture = "none";
+let lastLoggedGesture = "none";
+let logCooldown = 0;
+
+function handleFrame(data) {
+  // Camera frame
+  if (data.frame) {
+    document.getElementById("camera-img").src = "data:image/jpeg;base64," + data.frame;
+  }
+
+  // FPS
+  document.getElementById("fps-badge").textContent = `${data.fps} FPS`;
+
+  // Hand detected
+  const handBadge = document.getElementById("hand-detected-badge");
+  if (data.gesture !== "none") {
+    handBadge.textContent = "✋ Hand detected";
+    handBadge.style.color = "var(--green)";
+  } else {
+    handBadge.textContent = "No hand detected";
+    handBadge.style.color = "var(--muted)";
+  }
+
+  // Active gesture display
+  let gInfo = GESTURE_MAP[data.gesture];
+  if (!gInfo && data.gesture !== "none") {
+    // Custom gesture fallback
+    gInfo = {
+      icon: data.icon || "🤌",
+      label: data.label || data.gesture,
+      action: data.key ? (data.key.startsWith("http") ? `Open: ${data.key}` : `Press: ${data.key}`) : "No action",
+      color: "#00e5ff"
+    };
+  }
+  const display = document.getElementById("active-display");
+
+  if (gInfo) {
+    display.classList.add("active");
+    document.getElementById("active-icon").textContent = gInfo.icon;
+    document.getElementById("active-label").textContent = gInfo.label;
+    document.getElementById("active-action").textContent = gInfo.action.replace(/_/g," ").toUpperCase();
+
+    // Confidence bar
+    document.getElementById("conf-val").textContent = `${data.confidence}%`;
+    document.getElementById("conf-fill").style.width = `${data.confidence}%`;
+
+    // Overlay
+    document.getElementById("gesture-overlay").classList.add("visible");
+    document.getElementById("overlay-icon").textContent = gInfo.icon;
+    document.getElementById("overlay-name").textContent = gInfo.label.toUpperCase();
+    document.getElementById("overlay-conf").textContent = `${data.confidence}%`;
+
+    // Highlight gesture row
+    document.querySelectorAll(".gesture-row").forEach(r => r.classList.remove("active-row"));
+    let activeRow = document.getElementById(`gr-${data.gesture}`);
+    if (!activeRow && data.gesture !== "none") {
+      activeRow = document.createElement("div");
+      activeRow.className = "gesture-row";
+      activeRow.id = `gr-${data.gesture}`;
+      activeRow.innerHTML = `
+        <div class="gr-icon">${gInfo.icon}</div>
+        <div class="gr-info">
+          <div class="gr-name">${gInfo.label}</div>
+          <div class="gr-action">${gInfo.action.toUpperCase()}</div>
+        </div>
+        <div class="gr-count" id="gc-${data.gesture}">0</div>
+      `;
+      document.getElementById("gesture-list").appendChild(activeRow);
+    }
+    if (activeRow) activeRow.classList.add("active-row");
+
+    // Count
+    if (data.gesture !== lastGesture) {
+      gestureCount++;
+      gestureCounts[data.gesture] = (gestureCounts[data.gesture] || 0) + 1;
+      const countEl = document.getElementById(`gc-${data.gesture}`);
+      if (countEl) countEl.textContent = gestureCounts[data.gesture];
+      document.getElementById("stat-total").textContent = gestureCount;
+
+      // Log (with cooldown)
+      const now = Date.now();
+      if (data.gesture !== lastLoggedGesture || now - logCooldown > 1500) {
+        log("gesture", `${gInfo.icon} ${gInfo.label} → ${gInfo.action.toUpperCase()}`);
+        lastLoggedGesture = data.gesture;
+        logCooldown = now;
+      }
+    }
+    lastGesture = data.gesture;
+
+  } else {
+    display.classList.remove("active");
+    document.getElementById("active-icon").textContent = "—";
+    document.getElementById("active-label").textContent = "Waiting...";
+    document.getElementById("active-action").textContent = "No gesture detected";
+    document.getElementById("conf-fill").style.width = "0%";
+    document.getElementById("conf-val").textContent = "0%";
+    document.getElementById("gesture-overlay").classList.remove("visible");
+    document.querySelectorAll(".gesture-row").forEach(r => r.classList.remove("active-row"));
+    lastGesture = "none";
+  }
+
+  // Finger bars
+  const fingerIds = ["f-thumb","f-index","f-middle","f-ring","f-pinky"];
+  const heights   = [30, 45, 48, 44, 36];
+  data.fingers.forEach((state, i) => {
+    const el = document.getElementById(fingerIds[i]);
+    if (el) {
+      el.style.height = heights[i] + "px";
+      el.className = "finger-bar" + (state ? " up" : "");
+    }
+  });
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function setStatus(online) {
+  const pill = document.getElementById("status-pill");
+  const dot  = document.getElementById("status-dot");
+  const txt  = document.getElementById("status-text");
+  if (online) {
+    pill.className = "status-pill connected";
+    dot.className  = "status-dot pulse";
+    txt.textContent = "Connected";
+  } else {
+    pill.className = "status-pill disconnected";
+    dot.className  = "status-dot";
+    txt.textContent = "Disconnected";
+  }
+}
+
+function log(type, msg) {
+  const body = document.getElementById("log-body");
+  const now  = new Date();
+  const time = now.toTimeString().slice(0,8);
+  const entry = document.createElement("div");
+  entry.className = "log-entry";
+
+  let content = `<span class="time">${time}</span>`;
+  if (type === "gesture") content += `<span class="gesture-tag">${msg}</span>`;
+  else if (type === "error") content += `<span style="color:var(--red)">${msg}</span>`;
+  else content += msg;
+
+  entry.innerHTML = content;
+  body.appendChild(entry);
+  body.scrollTop = body.scrollHeight;
+  logCount++;
+  document.getElementById("log-count").textContent = `${logCount} events`;
+}
+
+function clearLog() {
+  document.getElementById("log-body").innerHTML = "";
+  logCount = 0;
+  document.getElementById("log-count").textContent = "0 events";
+}
+
+function startUptimeClock() {
+  uptimeInterval = setInterval(() => {
+    const elapsed = Math.floor((Date.now() - sessionStart) / 1000);
+    const m = String(Math.floor(elapsed / 60)).padStart(2,"0");
+    const s = String(elapsed % 60).padStart(2,"0");
+    document.getElementById("stat-uptime").textContent = `${m}:${s}`;
+  }, 1000);
+}
+
+function showToast(icon, msg) {
+  const toast = document.getElementById("toast");
+  document.getElementById("toast-icon").textContent = icon;
+  document.getElementById("toast-msg").textContent  = msg;
+  toast.classList.add("show");
+  setTimeout(() => toast.classList.remove("show"), 3000);
+}
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
+buildGestureList();
+</script>
+</body>
+</html>
